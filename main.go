@@ -18,7 +18,9 @@ package main
 
 import (
 	"flag"
+	"github.com/openshift/ocm-agent-operator/pkg/ocmagenthandler"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -89,9 +91,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Create a separate client for the OAH Builder
+	kubeConfig := ctrl.GetConfigOrDie()
+	handlerClient, err := client.New(kubeConfig, client.Options{Scheme: mgr.GetScheme()})
+	if err != nil {
+		os.Exit(1)
+	}
 	if err = (&ocmagent.OcmAgentReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:                 mgr.GetClient(),
+		Scheme:                 mgr.GetScheme(),
+		OCMAgentHandlerBuilder: ocmagenthandler.NewBuilder(handlerClient),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "OcmAgent")
 		os.Exit(1)

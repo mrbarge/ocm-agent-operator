@@ -42,30 +42,30 @@ import (
 	"github.com/openshift/ocm-agent-operator/pkg/ocmagenthandler"
 )
 
-type ocmAgentHandler func(scheme *runtime.Scheme) (ocmagenthandler.OCMAgentHandler, error)
+//type ocmAgentHandlerBuilder func(c client.Client) (ocmagenthandler.OCMAgentHandler, error)
 
 // OcmAgentReconciler reconciles a OcmAgent object
 type OcmAgentReconciler struct {
 	Client                 client.Client
 	Scheme                 *runtime.Scheme
-	OCMAgentHandlerBuilder ocmAgentHandler
+	OCMAgentHandlerBuilder ocmagenthandler.OcmAgentHandlerBuilder
 }
 
 var log = logf.Log.WithName("controller_ocmagent")
 
 var _ reconcile.Reconciler = &OcmAgentReconciler{}
 
-func (r *OcmAgentReconciler) getOCMAgentHandler() (ocmagenthandler.OCMAgentHandler, error) {
-	kubeConfig := ctrl.GetConfigOrDie()
-	handlerClient, err := client.New(kubeConfig, client.Options{Scheme: r.Scheme})
-	if err != nil {
-		return nil, err
-	}
-	log := ctrl.Log.WithName("controllers").WithName("OCMAgent")
-	ctx := context.Background()
-	oaohandler := ocmagenthandler.New(handlerClient, r.Scheme, log, ctx)
-	return oaohandler, nil
-}
+//func getOCMAgentHandler() (ocmagenthandler.OCMAgentHandler, error) {
+//	kubeConfig := ctrl.GetConfigOrDie()
+//	handlerClient, err := client.New(kubeConfig, client.Options{Scheme: r.Scheme})
+//	if err != nil {
+//		return nil, err
+//	}
+//	log := ctrl.Log.WithName("controllers").WithName("OCMAgent")
+//	ctx := context.Background()
+//	oaohandler := ocmagenthandler.New(handlerClient, log, ctx)
+//	return oaohandler, nil
+//}
 
 //+kubebuilder:rbac:groups=ocmagent.managed.openshift.io,resources=ocmagents,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=ocmagent.managed.openshift.io,resources=ocmagents/status,verbs=get;update;patch
@@ -101,7 +101,7 @@ func (r *OcmAgentReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		return reconcile.Result{}, err
 	}
 	localmetrics.ResetMetricOcmAgentResourceAbsent()
-	oaohandler, err := r.getOCMAgentHandler()
+	oaohandler, err := r.OCMAgentHandlerBuilder.New()
 	if err != nil {
 		return reconcile.Result{}, err
 	}
